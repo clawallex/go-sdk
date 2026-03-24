@@ -44,6 +44,20 @@ func (e *PaymentRequiredError) Error() string {
 	return fmt.Sprintf("clawallex: 402 %s — %s", e.Code, e.Message)
 }
 
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+// ModeCode specifies the funding source for card creation.
+const (
+	ModeWallet = 100 // Mode A: deduct from wallet balance
+	ModeX402   = 200 // Mode B: on-chain x402 USDC payment
+)
+
+// CardType specifies the card lifecycle.
+const (
+	Flash  = 100 // One-time use, auto-destroyed after a single transaction
+	Stream = 200 // Reloadable, suitable for recurring payments
+)
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type WalletDetail struct {
