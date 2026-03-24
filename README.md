@@ -94,10 +94,10 @@ Mode A is the simplest path: cards are paid from your Clawallex wallet balance. 
 import "github.com/google/uuid"
 
 order, err := client.NewCard(ctx, clawallex.NewCardParams{
-    ModeCode:        100,               // Mode A
-    CardType:        100,               // 100=flash, 200=stream
-    Amount:          "50.0000",         // card face value in USD
-    ClientRequestID: uuid.NewString(),  // idempotency key
+    ModeCode:        clawallex.ModeWallet, // Mode A
+    CardType:        clawallex.Flash,      // Flash or Stream
+    Amount:          "50.0000",            // card face value in USD
+    ClientRequestID: uuid.NewString(),     // idempotency key
 })
 
 // order.CardOrderID — always present
@@ -191,11 +191,11 @@ clientRequestID := uuid.NewString()
 var details *clawallex.CardOrder402Details
 
 _, err := client.NewCard(ctx, clawallex.NewCardParams{
-    ModeCode:        200,
-    CardType:        200,           // 100=flash, 200=stream
+    ModeCode:        clawallex.ModeX402,
+    CardType:        clawallex.Stream,  // Flash or Stream
     Amount:          "200.0000",
     ClientRequestID: clientRequestID,
-    ChainCode:       "ETH",        // or "BASE"
+    ChainCode:       "ETH",            // or "BASE"
     TokenCode:       "USDC",
 })
 var payErr *clawallex.PaymentRequiredError
@@ -322,8 +322,8 @@ requirements := clawallex.X402PaymentRequirements{
 requirements.Extra.ReferenceID = details.X402ReferenceID
 
 order, err := client.NewCard(ctx, clawallex.NewCardParams{
-    ModeCode:            200,
-    CardType:            200,
+    ModeCode:            clawallex.ModeX402,
+    CardType:            clawallex.Stream,
     Amount:              "200.0000",
     ClientRequestID:     clientRequestID,             // MUST reuse from Stage 1
     X402Version:         1,
@@ -435,12 +435,12 @@ if errors.As(err, &apiErr) {
 
 ## Enums Reference
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `mode_code` | `100` | Mode A — wallet funded |
-| `mode_code` | `200` | Mode B — x402 on-chain |
-| `card_type` | `100` | Flash card |
-| `card_type` | `200` | Stream card (subscription) |
+| Constant | Named Constant | Value | Description |
+|----------|---------------|-------|-------------|
+| `mode_code` | `clawallex.ModeWallet` | `100` | Mode A — wallet funded |
+| `mode_code` | `clawallex.ModeX402` | `200` | Mode B — x402 on-chain |
+| `card_type` | `clawallex.Flash` | `100` | Flash card |
+| `card_type` | `clawallex.Stream` | `200` | Stream card (subscription) |
 | `card.status` | `200` | Active |
 | `card.status` | `220` | Closing |
 | `card.status` | `230` | Expired |
