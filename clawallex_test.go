@@ -361,8 +361,8 @@ func TestModeACreateVerifyClose(t *testing.T) {
 	_, _ = rand.Read(b)
 	reqID := fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 	order, err := c.NewCard(ctx, NewCardParams{
-		ModeCode:        100,
-		CardType:        100,
+		ModeCode:        ModeWallet,
+		CardType:        Flash,
 		Amount:          "5.0000",
 		ClientRequestID: reqID,
 	})
@@ -395,7 +395,7 @@ func TestModeACreateVerifyClose(t *testing.T) {
 				continue
 			}
 			for _, card := range list.Data {
-				if !existingCards[card.CardID] && card.ModeCode == 100 {
+				if !existingCards[card.CardID] && card.ModeCode == ModeWallet {
 					cardID = card.CardID
 					t.Logf("poll %d: found new card %s", i+1, cardID)
 					break
@@ -441,13 +441,39 @@ func TestModeBReturns402(t *testing.T) {
 	b := make([]byte, 16)
 	_, _ = rand.Read(b)
 	clientReqID := fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
+
+	const payerAddr = "0x850E5F8D352CC8f501754f8835eE28e4ea4Ba68C"
+	const dummyAddr = "0x0000000000000000000000000000000000000000"
+	const dummyNonce = "0x0000000000000000000000000000000000000000000000000000000000000000"
+	const dummySig = "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+
 	_, err := c.NewCard(ctx, NewCardParams{
-		ModeCode:        200,
-		CardType:        200,
-		Amount:          "100.0000",
+		ModeCode:        ModeX402,
+		CardType:        Stream,
+		Amount:          "1.0000",
 		ClientRequestID: clientReqID,
 		ChainCode:       "ETH",
 		TokenCode:       "USDC",
+		PayerAddress:    payerAddr,
+		X402Version:     1,
+		PaymentPayload: map[string]any{
+			"scheme": "exact", "network": "ETH",
+			"payload": map[string]any{
+				"signature": dummySig,
+				"authorization": map[string]any{
+					"from": payerAddr, "to": dummyAddr,
+					"value": "1050000", "validAfter": "0", "validBefore": "9999999999",
+					"nonce": dummyNonce,
+				},
+			},
+		},
+		PaymentRequirements: map[string]any{
+			"scheme": "exact", "network": "ETH",
+			"asset": dummyAddr, "payTo": dummyAddr,
+			"maxAmountRequired": "1050000",
+			"extra": map[string]any{"referenceId": "dummy"},
+		},
+		Extra: map[string]string{"card_amount": "1.0000", "paid_amount": "1.0500"},
 	})
 	if err == nil {
 		t.Fatal("expected 402 PaymentRequiredError")

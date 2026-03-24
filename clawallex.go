@@ -162,20 +162,6 @@ func (r X402PaymentRequirements) ToMap() map[string]any {
 	}
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-// ModeCode specifies the funding source for card creation.
-const (
-	ModeWallet = 100 // Mode A: deduct from wallet balance
-	ModeX402   = 200 // Mode B: on-chain x402 USDC payment
-)
-
-// CardType specifies the card lifecycle.
-const (
-	Flash  = 100 // One-time use, auto-destroyed after a single transaction
-	Stream = 200 // Reloadable, suitable for recurring payments
-)
-
 // ─── Cards ───────────────────────────────────────────────────────────────────
 
 type NewCardParams struct {
