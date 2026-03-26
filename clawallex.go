@@ -171,8 +171,9 @@ type NewCardParams struct {
 	ClientRequestID         string                 `json:"client_request_id"`
 	FeeAmount               string                 `json:"fee_amount,omitempty"`
 	IssuerCardCurrency      string                 `json:"issuer_card_currency,omitempty"`
-	IssuerSpendingControls  string                 `json:"issuer_spending_controls,omitempty"`
-	Allow3DSTransactions    string                 `json:"allow_3ds_transactions,omitempty"`
+	TxLimit                 string                 `json:"tx_limit,omitempty"`
+	AllowedMCC              string                 `json:"allowed_mcc,omitempty"`
+	BlockedMCC              string                 `json:"blocked_mcc,omitempty"`
 	ChainCode               string                 `json:"chain_code,omitempty"`
 	TokenCode               string                 `json:"token_code,omitempty"`
 	X402ReferenceID         string                 `json:"x402_reference_id,omitempty"`
@@ -255,6 +256,9 @@ type CardDetailsResponse struct {
 	EncryptedSensitiveData EncryptedSensitiveData `json:"encrypted_sensitive_data"`
 	ExpiryMonth            int                    `json:"expiry_month"`
 	ExpiryYear             int                    `json:"expiry_year"`
+	TxLimit                string                 `json:"tx_limit"`
+	AllowedMCC             string                 `json:"allowed_mcc"`
+	BlockedMCC             string                 `json:"blocked_mcc"`
 	CardCurrency           string                 `json:"card_currency"`
 	AvailableBalance       string                 `json:"available_balance"`
 	FirstName              string                 `json:"first_name"`
@@ -274,21 +278,31 @@ type TransactionListParams struct {
 }
 
 type Transaction struct {
-	CardID          string  `json:"card_id"`
-	CardTxID        string  `json:"card_tx_id"`
-	IssuerTxID      string  `json:"issuer_tx_id"`
-	ActionType      int     `json:"action_type"`
-	TxType          int     `json:"tx_type"`
-	Amount          string  `json:"amount"`
-	FeeAmount       string  `json:"fee_amount"`
-	Status          int     `json:"status"`
-	IsInProgress    int     `json:"is_in_progress"`
-	MerchantName    string  `json:"merchant_name"`
-	MCC             string  `json:"mcc"`
-	DeclineReason   string  `json:"decline_reason"`
-	OccurredAt      string  `json:"occurred_at"`
-	SettledAt       *string `json:"settled_at"`
-	WebhookEventID  string  `json:"webhook_event_id"`
+	CardID                    string  `json:"card_id"`
+	CardTxID                  string  `json:"card_tx_id"`
+	IssuerTxID                string  `json:"issuer_tx_id"`
+	IssuerOriTxID             string  `json:"issuer_ori_tx_id"`
+	ActionType                int     `json:"action_type"`
+	TxType                    int     `json:"tx_type"`
+	ProcessStatus             string  `json:"process_status"`
+	Amount                    string  `json:"amount"`
+	FeeAmount                 string  `json:"fee_amount"`
+	FeeCurrency               string  `json:"fee_currency"`
+	BillingAmount             string  `json:"billing_amount"`
+	BillingCurrency           string  `json:"billing_currency"`
+	TransactionAmount         string  `json:"transaction_amount"`
+	TransactionCurrency       string  `json:"transaction_currency"`
+	Status                    int     `json:"status"`
+	CardFundApplied           int     `json:"card_fund_applied"`
+	IsInProgress              int     `json:"is_in_progress"`
+	MerchantName              string  `json:"merchant_name"`
+	MCC                       string  `json:"mcc"`
+	DeclineReason             string  `json:"decline_reason"`
+	Description               string  `json:"description"`
+	IssuerCardAvailableBalance string `json:"issuer_card_available_balance"`
+	OccurredAt                string  `json:"occurred_at"`
+	SettledAt                 *string `json:"settled_at"`
+	WebhookEventID            string  `json:"webhook_event_id"`
 }
 
 type TransactionListResponse struct {
@@ -299,6 +313,23 @@ type TransactionListResponse struct {
 	PageSize   int           `json:"page_size"`
 	Total      int           `json:"total"`
 	Data       []Transaction `json:"data"`
+}
+
+type UpdateCardParams struct {
+	ClientRequestID string `json:"client_request_id"`
+	TxLimit         string `json:"tx_limit,omitempty"`
+	AllowedMCC      string `json:"allowed_mcc,omitempty"`
+	BlockedMCC      string `json:"blocked_mcc,omitempty"`
+}
+
+type UpdateCardResponse struct {
+	CardID      string `json:"card_id"`
+	CardOrderID string `json:"card_order_id"`
+	Status      string `json:"status"`
+}
+
+type BatchCardBalanceResponse struct {
+	Data []CardBalanceResponse `json:"data"`
 }
 
 type RefillCardParams struct {
@@ -545,6 +576,19 @@ func (c *Client) CardBalance(ctx context.Context, cardID string) (*CardBalanceRe
 func (c *Client) CardDetails(ctx context.Context, cardID string) (*CardDetailsResponse, error) {
 	var out CardDetailsResponse
 	return &out, c.get(ctx, "/payment/cards/"+cardID+"/details", nil, &out)
+}
+
+func (c *Client) BatchCardBalances(ctx context.Context, cardIDs []string) (*BatchCardBalanceResponse, error) {
+	type batchBalanceReq struct {
+		CardIDs []string `json:"card_ids"`
+	}
+	var out BatchCardBalanceResponse
+	return &out, c.post(ctx, "/payment/cards/balances", batchBalanceReq{CardIDs: cardIDs}, &out)
+}
+
+func (c *Client) UpdateCard(ctx context.Context, cardID string, params UpdateCardParams) (*UpdateCardResponse, error) {
+	var out UpdateCardResponse
+	return &out, c.post(ctx, "/payment/cards/"+cardID+"/update", params, &out)
 }
 
 // ─── Transactions ─────────────────────────────────────────────────────────────

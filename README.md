@@ -75,7 +75,9 @@ client.X402AssetAddress(ctx, "USDC", "BASE")   // explicit chain
 client.NewCard(ctx, params)
 client.CardList(ctx, params)
 client.CardBalance(ctx, cardID)
+client.BatchCardBalances(ctx, []string{"card-id-1", "card-id-2"})
 client.CardDetails(ctx, cardID)
+client.UpdateCard(ctx, cardID, params)
 
 // Transactions
 client.TransactionList(ctx, params)
@@ -83,6 +85,30 @@ client.TransactionList(ctx, params)
 // Refill
 client.RefillCard(ctx, cardID, params)
 ```
+
+### Batch Card Balances
+
+Query multiple card balances in a single request:
+
+```go
+result, err := client.BatchCardBalances(ctx, []string{"card-id-1", "card-id-2"})
+// result.Data: []CardBalanceResponse — same order as input card_ids
+```
+
+### Update Card Controls
+
+Update a card's spending controls (transaction limit, MCC filters):
+
+```go
+result, err := client.UpdateCard(ctx, cardID, clawallex.UpdateCardParams{
+    ClientRequestID: uuid.NewString(),
+    TxLimit:         "200.0000",     // per-transaction limit
+    AllowedMCC:      "5411,5812",    // MCC whitelist (OR BlockedMCC, not both)
+})
+// result.Status: "success" | "pending_external"
+```
+
+> At least one update field must be provided. `AllowedMCC` and `BlockedMCC` are **mutually exclusive** — set one or the other, not both. The server creates an update order and calls the issuer. If the issuer responds asynchronously, `Status` will be `"pending_external"` and the final result arrives via webhook.
 
 ## Mode A — Wallet Funded Card
 
@@ -98,6 +124,9 @@ order, err := client.NewCard(ctx, clawallex.NewCardParams{
     CardType:        clawallex.Flash,      // Flash or Stream
     Amount:          "50.0000",            // card face value in USD
     ClientRequestID: uuid.NewString(),     // idempotency key
+    // Optional spending controls:
+    TxLimit:         "100.0000",           // per-transaction limit
+    AllowedMCC:      "5411,5812",          // MCC whitelist (OR BlockedMCC, not both)
 })
 
 // order.CardOrderID — always present
@@ -377,7 +406,19 @@ refill, err := client.RefillCard(ctx, cardID, clawallex.RefillCardParams{
 
 ## Card Details — Decrypting PAN/CVV
 
-`CardDetails` returns encrypted sensitive data. The server encrypts with a key derived from your `api_secret`.
+The `CardDetails` response includes card controls and cardholder info alongside encrypted PAN/CVV:
+
+| Field | Description |
+|-------|-------------|
+| `TxLimit` | Per-transaction spending limit |
+| `AllowedMCC` | MCC whitelist (comma-separated; mutually exclusive with `BlockedMCC`) |
+| `BlockedMCC` | MCC blacklist (comma-separated; mutually exclusive with `AllowedMCC`) |
+| `FirstName` | Cardholder first name |
+| `LastName` | Cardholder last name |
+| `DeliveryAddress` | Billing address (JSON string or plain text) |
+| `EncryptedSensitiveData` | Encrypted PAN/CVV (see below) |
+
+The server encrypts sensitive data with a key derived from your `api_secret`.
 
 ```go
 import (
