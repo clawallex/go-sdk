@@ -181,7 +181,10 @@ type NewCardParams struct {
 	PaymentPayload          map[string]any         `json:"payment_payload,omitempty"`
 	PaymentRequirements     map[string]any         `json:"payment_requirements,omitempty"`
 	Extra                   map[string]string      `json:"extra,omitempty"`
-	PayerAddress            string                 `json:"payer_address,omitempty"`
+	// TTL is the card lifetime in seconds. Flash cards only; omit for the
+	// default 24-hour expiry. Sets issuer expiry_at = now + TTL.
+	TTL          *int64                 `json:"ttl,omitempty"`
+	PayerAddress string                 `json:"payer_address,omitempty"`
 }
 
 // CardOrder402Details holds the payment challenge returned with HTTP 402
